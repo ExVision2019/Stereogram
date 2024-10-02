@@ -15,46 +15,46 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedTemplateId = null;
     let templateOptions = [];
 
-     // Fetch and populate template options
-     fetch('/api/templates')
-     .then(response => response.json())
-     .then(templates => {
-         templateOptions = templates;
-         templates.forEach(template => {
-             const option = document.createElement('div');
-             option.className = 'option';
-             option.innerHTML = `
-                 <span>${template.name}</span>
-                 <img src="/uploads/${template.filename}" alt="${template.name}" class="template-preview">
-             `;
-             option.dataset.value = template.id;
-             option.dataset.filename = template.filename;
-             option.dataset.name = template.name;
-             optionsContainer.appendChild(option);
+    // Fetch and populate template options
+    fetch('/api/templates')
+    .then(response => response.json())
+    .then(templates => {
+        templateOptions = templates;
+        templates.forEach(template => {
+            const option = document.createElement('div');
+            option.className = 'option';
+            option.innerHTML = `
+                <img src="/uploads/${template.filename}" alt="${template.name}">
+                <span>${template.name}</span>
+            `;
+            option.dataset.value = template.id;
+            option.dataset.filename = template.filename;
+            option.dataset.name = template.name;
+            optionsContainer.appendChild(option);
 
-             option.addEventListener('click', function() {
-                 selectedTemplateId = this.dataset.value;
-                 updateSelectedOption(this.dataset.name, this.dataset.filename);
-                 optionsContainer.classList.add('hidden');
-                 updateTemplatePreview(this.dataset.filename);
-             });
-         });
+            option.addEventListener('click', function() {
+                selectedTemplateId = this.dataset.value;
+                updateSelectedOption(this.dataset.name, this.dataset.filename);
+                optionsContainer.classList.add('hidden');
+                updateTemplatePreview(this.dataset.filename);
+            });
+        });
 
-         // Select a random template as default
-         selectRandomTemplate();
-     });
+        // Select a random template as default
+        selectRandomTemplate();
+    });
 
-     function selectRandomTemplate() {
-         if (templateOptions.length > 0) {
-             const randomIndex = Math.floor(Math.random() * templateOptions.length);
-             const randomTemplate = templateOptions[randomIndex];
-             selectedTemplateId = randomTemplate.id;
-             updateSelectedOption(randomTemplate.name, randomTemplate.filename);
-             updateTemplatePreview(randomTemplate.filename);
-         }
-     }
+    function selectRandomTemplate() {
+        if (templateOptions.length > 0) {
+            const randomIndex = Math.floor(Math.random() * templateOptions.length);
+            const randomTemplate = templateOptions[randomIndex];
+            selectedTemplateId = randomTemplate.id;
+            updateSelectedOption(randomTemplate.name, randomTemplate.filename);
+            updateTemplatePreview(randomTemplate.filename);
+        }
+    }
 
-     function updateSelectedOption(name, filename) {
+    function updateSelectedOption(name, filename) {
         selectedOption.innerHTML = `
             <span>${name}</span>
             <img src="/uploads/${filename}" alt="${name}" class="template-preview">
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Update the updateTemplatePreview function
+    // Keep the original updateTemplatePreview function
     function updateTemplatePreview(filename) {
         if (filename) {
             const templatePath = `/uploads/${filename}`;
