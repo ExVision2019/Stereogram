@@ -1,7 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const customDropdown = document.getElementById('customDropdown');
-    const selectedOption = customDropdown.querySelector('.selected-option');
-    const optionsContainer = customDropdown.querySelector('.options-container');
+    const templateGrid = document.getElementById('templateGrid');
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const previewContainer = document.getElementById('previewContainer');
@@ -14,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let selectedTemplateId = null;
     let templateOptions = [];
+    let hoverTimeout;
 
     // Fetch and populate template options
     fetch('/api/templates')
@@ -21,22 +20,28 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(templates => {
         templateOptions = templates;
         templates.forEach(template => {
-            const option = document.createElement('div');
-            option.className = 'option';
-            option.innerHTML = `
-                <img src="/uploads/${template.filename}" alt="${template.name}">
-                <span>${template.name}</span>
-            `;
-            option.dataset.value = template.id;
-            option.dataset.filename = template.filename;
-            option.dataset.name = template.name;
-            optionsContainer.appendChild(option);
+            const templateItem = document.createElement('div');
+            templateItem.className = 'template-item';
+            templateItem.innerHTML = `<img src="/uploads/${template.filename}" alt="${template.name}">`;
+            templateItem.dataset.value = template.id;
+            templateItem.dataset.filename = template.filename;
+            templateItem.dataset.name = template.name;
+            templateGrid.appendChild(templateItem);
 
-            option.addEventListener('click', function() {
-                selectedTemplateId = this.dataset.value;
-                updateSelectedOption(this.dataset.name, this.dataset.filename);
-                optionsContainer.classList.add('hidden');
-                updateTemplatePreview(this.dataset.filename);
+            templateItem.addEventListener('click', function() {
+                selectTemplate(this);
+            });
+
+            templateItem.addEventListener('mouseenter', function() {
+                const item = this;
+                hoverTimeout = setTimeout(() => {
+                    item.classList.add('hovered');
+                }, 500);
+            });
+
+            templateItem.addEventListener('mouseleave', function() {
+                clearTimeout(hoverTimeout);
+                this.classList.remove('hovered');
             });
         });
 
@@ -47,35 +52,42 @@ document.addEventListener('DOMContentLoaded', function() {
     function selectRandomTemplate() {
         if (templateOptions.length > 0) {
             const randomIndex = Math.floor(Math.random() * templateOptions.length);
-            const randomTemplate = templateOptions[randomIndex];
-            selectedTemplateId = randomTemplate.id;
-            updateSelectedOption(randomTemplate.name, randomTemplate.filename);
-            updateTemplatePreview(randomTemplate.filename);
+            const randomTemplate = templateGrid.children[randomIndex];
+            selectTemplate(randomTemplate);
         }
     }
 
-    function updateSelectedOption(name, filename) {
-        selectedOption.innerHTML = `
-            <span>${name}</span>
-            <img src="/uploads/${filename}" alt="${name}" class="template-preview">
-        `;
+    function selectTemplate(templateItem) {
+        document.querySelectorAll('.template-item.selected').forEach(item => item.classList.remove('selected'));
+        templateItem.classList.add('selected');
+        selectedTemplateId = templateItem.dataset.value;
+        updateTemplatePreview(templateItem.dataset.filename);
     }
 
-    selectedOption.addEventListener('click', function() {
-        optionsContainer.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!customDropdown.contains(e.target)) {
-            optionsContainer.classList.add('hidden');
-        }
-    });
-
-    // Keep the original updateTemplatePreview function
     function updateTemplatePreview(filename) {
         if (filename) {
             const templatePath = `/uploads/${filename}`;
-            templatePreview.src = templatePath;
+            
+            // Clear previous preview
+            templatePreview.innerHTML = '';
+            
+            // Calculate the number of tiles needed to fill the preview area
+            const previewWidth = previewContainer.clientWidth;
+            const previewHeight = previewContainer.clientHeight;
+            const tileSize = 50; // This should match the grid-auto-rows and minmax value in CSS
+            const tilesX = Math.ceil(previewWidth / tileSize);
+            const tilesY = Math.ceil(previewHeight / tileSize);
+            
+            // Create and append tiles
+            for (let y = 0; y < tilesY; y++) {
+                for (let x = 0; x < tilesX; x++) {
+                    const img = document.createElement('img');
+                    img.src = templatePath;
+                    img.alt = 'Template preview tile';
+                    templatePreview.appendChild(img);
+                }
+            }
+            
             previewContainer.classList.remove('hidden');
         } else {
             previewContainer.classList.add('hidden');
@@ -120,5 +132,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             alert('An error occurred while generating the stereogram.');
         });
+    });
+
+    // Add resize event listener to update preview when window is resized
+    window.addEventListener('resize', () => {
+        if (selectedTemplateId) {
+            const selectedTemplate = document.querySelector(`.template-item[data-value="${selectedTemplateId}"]`);
+            updateTemplatePreview(selectedTemplate.dataset.filename);
+        }
     });
 });

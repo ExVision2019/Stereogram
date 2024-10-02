@@ -60,13 +60,8 @@
 
                     <div class="upload-section mb-6">
                         <h2 class="upload-title">Select Template Image:</h2>
-                        <div id="customDropdown" class="custom-dropdown upload-field">
-                            <div class="selected-option upload-input">
-                                <span>-- Select a template --</span>
-                            </div>
-                            <div class="options-container hidden">
-                                <!-- Options will be populated here by JavaScript -->
-                            </div>
+                        <div id="templateGrid" class="template-grid">
+                            <!-- Templates will be populated here by JavaScript -->
                         </div>
                     </div>
 
@@ -90,7 +85,7 @@
                 <div>
                     <h3 class="section-title">Template Preview</h3>
                     <div id="previewContainer" class="preview-container hidden">
-                        <img id="templatePreview" src="" alt="Template Preview" class="w-full h-64 object-contain">
+                        <div id="templatePreview" class="template-preview-grid"></div>
                     </div>
                 </div>
             </div>
@@ -107,3 +102,8 @@
     <script src="/js/main.js"></script>
 </body>
 </html>
+
+
+
+
+
