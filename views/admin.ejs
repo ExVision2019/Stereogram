@@ -16,11 +16,12 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="max-w-4xl w-full bg-white rounded-xl custom-shadow p-8">
-        <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">Admin Template Manager</h1>
+        <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">Admin Asset Manager</h1>
         
-        <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Upload New Template</h2>
-            <form id="uploadForm" class="space-y-4">
+        <!-- Templates Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Template Management</h2>
+            <form id="uploadTemplateForm" class="space-y-4">
                 <div>
                     <label for="templateName" class="block mb-2 text-gray-700 font-medium">Template Name:</label>
                     <input type="text" id="templateName" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -31,13 +32,36 @@
                 </div>
                 <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200">Upload Template</button>
             </form>
+
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Existing Templates</h3>
+                <ul id="templateList" class="space-y-4">
+                    <!-- Template list will be populated dynamically -->
+                </ul>
+            </div>
         </div>
 
+        <!-- Depth Images Section -->
         <div>
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Existing Templates</h2>
-            <ul id="templateList" class="space-y-4">
-                <!-- Template list will be populated dynamically -->
-            </ul>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Depth Image Management</h2>
+            <form id="uploadDepthForm" class="space-y-4">
+                <div>
+                    <label for="depthName" class="block mb-2 text-gray-700 font-medium">Depth Image Name:</label>
+                    <input type="text" id="depthName" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="depthImage" class="block mb-2 text-gray-700 font-medium">Depth Image:</label>
+                    <input type="file" id="depthImage" accept="image/*" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200">Upload Depth Image</button>
+            </form>
+
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Existing Depth Images</h3>
+                <ul id="depthList" class="space-y-4">
+                    <!-- Depth image list will be populated dynamically -->
+                </ul>
+            </div>
         </div>
     </div>
 

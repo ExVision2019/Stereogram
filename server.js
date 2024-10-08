@@ -10,17 +10,22 @@ const port = 3000;
 
 const { createCanvas, loadImage } = require('canvas');
 
-// Ensure uploads directory exists
+// Ensure uploads directories exist
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
+const depthUploadsDir = path.join(__dirname, 'public', 'uploads', 'depth');
 if (!fs.existsSync(uploadsDir)){
     fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(depthUploadsDir)){
+    fs.mkdirSync(depthUploadsDir, { recursive: true });
 }
 
 // Database setup
 const db = new sqlite3.Database('templates.db');
 db.run("CREATE TABLE IF NOT EXISTS templates (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, filename TEXT)");
+db.run("CREATE TABLE IF NOT EXISTS depth_images (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, filename TEXT)");
 
-// Middleware
+// Middleware setup...
 app.use(bodyParser.json());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -28,22 +33,30 @@ app.set('views', path.join(__dirname, 'views'));
 
 // File upload configuration
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+    destination: (req, file, cb) => {
+        if (req.path.includes('depth-images')) {
+            cb(null, depthUploadsDir);
+        } else if (req.path.includes('templates')) {
+            cb(null, uploadsDir);
+        } else {
+            // For temporary uploads during stereogram generation
+            cb(null, path.join(__dirname, 'temp'));
+        }
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
 });
+
 const upload = multer({ storage: storage });
 
-// Routes
+// Existing routes...
 app.get('/', (req, res) => {
-  res.render('index');
+    res.render('index');
 });
 
 app.get('/admin', (req, res) => {
-  res.render('admin');
+    res.render('admin');
 });
 
 app.get('/api/templates', (req, res) => {
@@ -81,57 +94,108 @@ app.delete('/api/templates/:id', (req, res) => {
 
 app.post('/generate-stereogram', upload.single('depthImage'), async (req, res) => {
   try {
-    const { separation, depthStrength, templateId } = req.body;
-    const depthImage = await loadImage(req.file.path);
-    
-    // Fetch template image
-    const template = await new Promise((resolve, reject) => {
-      db.get("SELECT filename FROM templates WHERE id = ?", templateId, (err, row) => {
-        if (err) reject(err);
-        else if (row) resolve(row.filename);
-        else reject(new Error('Template not found'));
+      const { separation, depthStrength, templateId, depthImageId } = req.body;
+      let depthImagePath;
+
+      // Handle both uploaded file and selected depth image cases
+      if (req.file) {
+          // Case 1: New file uploaded
+          depthImagePath = req.file.path;
+      } else if (depthImageId) {
+          // Case 2: Existing depth image selected
+          const depthImage = await new Promise((resolve, reject) => {
+              db.get("SELECT filename FROM depth_images WHERE id = ?", depthImageId, (err, row) => {
+                  if (err) reject(err);
+                  else if (row) resolve(row);
+                  else reject(new Error('Depth image not found'));
+              });
+          });
+          depthImagePath = path.join(depthUploadsDir, depthImage.filename);
+      } else {
+          throw new Error('No depth image provided');
+      }
+
+      // Load the depth image
+      const depthImage = await loadImage(depthImagePath);
+      
+      // Fetch template image
+      const template = await new Promise((resolve, reject) => {
+          db.get("SELECT filename FROM templates WHERE id = ?", templateId, (err, row) => {
+              if (err) reject(err);
+              else if (row) resolve(row);
+              else reject(new Error('Template not found'));
+          });
       });
-    });
-    const templateImage = await loadImage(path.join(uploadsDir, template));
+      const templateImage = await loadImage(path.join(uploadsDir, template.filename));
 
-    // Generate stereogram
-    const stereogram = createStereogram(depthImage, parseInt(separation), parseInt(depthStrength), templateImage);
+      // Generate stereogram
+      const stereogram = createStereogram(depthImage, parseInt(separation), parseInt(depthStrength), templateImage);
 
-    // Send the generated stereogram
-    res.set('Content-Type', 'image/png');
-    stereogram.createPNGStream().pipe(res);
+      // Clean up temporary file if it was an upload
+      if (req.file) {
+          fs.unlink(req.file.path, (err) => {
+              if (err) console.error('Error deleting temporary file:', err);
+          });
+      }
+
+      // Send the generated stereogram
+      res.set('Content-Type', 'image/png');
+      stereogram.createPNGStream().pipe(res);
   } catch (error) {
-    console.error('Error generating stereogram:', error);
-    res.status(500).json({ error: 'An error occurred while generating the stereogram.' });
+      console.error('Error generating stereogram:', error);
+      res.status(500).json({ error: 'An error occurred while generating the stereogram.' });
   }
 });
 
-app.post('/generate-stereogram', upload.single('depthImage'), async (req, res) => {
-  try {
-    const { separation, depthStrength, templateId } = req.body;
-    const depthImage = await loadImage(req.file.path);
-    
-    // Fetch template image
-    const template = await new Promise((resolve, reject) => {
-      db.get("SELECT filename FROM templates WHERE id = ?", templateId, (err, row) => {
-        if (err) reject(err);
-        else if (row) resolve(row.filename);
-        else reject(new Error('Template not found'));
-      });
-    });
-    const templateImage = await loadImage(path.join(uploadsDir, template));
-
-    // Generate stereogram
-    const stereogram = createStereogram(depthImage, parseInt(separation), parseInt(depthStrength), templateImage);
-
-    // Send the generated stereogram
-    res.set('Content-Type', 'image/png');
-    stereogram.createPNGStream().pipe(res);
-  } catch (error) {
-    console.error('Error generating stereogram:', error);
-    res.status(500).json({ error: 'An error occurred while generating the stereogram.' });
-  }
+// New depth image routes
+app.get('/api/depth-images', (req, res) => {
+  db.all("SELECT * FROM depth_images", [], (err, rows) => {
+      if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+      }
+      res.json(rows);
+  });
 });
+
+app.post('/api/depth-images', upload.single('image'), (req, res) => {
+  const { name } = req.body;
+  const filename = req.file.filename;
+  
+  db.run("INSERT INTO depth_images (name, filename) VALUES (?, ?)", [name, filename], function(err) {
+      if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+      }
+      res.json({ id: this.lastID, name, filename });
+  });
+});
+
+app.delete('/api/depth-images/:id', (req, res) => {
+  db.get("SELECT filename FROM depth_images WHERE id = ?", req.params.id, (err, row) => {
+      if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+      }
+      if (row) {
+          const filePath = path.join(depthUploadsDir, row.filename);
+          fs.unlink(filePath, (err) => {
+              if (err) console.error('Error deleting file:', err);
+          });
+          
+          db.run("DELETE FROM depth_images WHERE id = ?", req.params.id, function(err) {
+              if (err) {
+                  res.status(500).json({ error: err.message });
+                  return;
+              }
+              res.json({ message: "Depth image deleted successfully" });
+          });
+      } else {
+          res.status(404).json({ error: "Depth image not found" });
+      }
+  });
+});
+
 
 function createPattern(width, height, templateImage) {
   const canvas = createCanvas(width, height);

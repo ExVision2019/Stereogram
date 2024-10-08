@@ -45,20 +45,26 @@
                 <div>
                     <h3 class="section-title">Generator Settings</h3>
                     <div class="upload-section">
-                        <!-- Section Title -->
-                        <h2 class="upload-title">Upload Depth Image</h2>
-                      
+                        <h2 class="upload-title">Select Depth Image</h2>
+                        
                         <!-- File Upload Field -->
                         <div class="upload-field">
-                          <label for="depthImage" class="upload-label">Choose Depth Image:</label>
-                          <input type="file" id="depthImage" name="depthImage" class="upload-input">
+                            <label for="depthImage" class="upload-label">Upload Custom Depth Image:</label>
+                            <input type="file" id="depthImage" name="depthImage" class="upload-input">
                         </div>
-                      
-                        <!-- Any additional text or instructions can go here -->
-                        <p class="upload-instructions">Supported file types: .png, .jpg. Make sure the image is formatted correctly for the depth effect.</p>
+                    
+                        <!-- Depth Image Grid -->
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold mb-2">Or Choose from Library:</h3>
+                            <div id="depthImageGrid" class="template-grid">
+                                <!-- Depth images will be populated here by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <p class="upload-instructions mt-4">Supported file types: .png, .jpg. For best results, use grayscale images where white represents the closest points and black represents the farthest points.</p>
                     </div>
 
-                    <div class="upload-section mb-6">
+                    <div class="upload-section mb-6 grid-window">
                         <h2 class="upload-title">Select Template Image:</h2>
                         <div id="templateGrid" class="template-grid">
                             <!-- Templates will be populated here by JavaScript -->

@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedTemplateId = null;
     let templateOptions = [];
     let hoverTimeout;
+    let selectedDepthId = null;
+    let depthImageOptions = [];
 
     // Fetch and populate template options
     fetch('/api/templates')
@@ -48,6 +50,37 @@ document.addEventListener('DOMContentLoaded', function() {
         // Select a random template as default
         selectRandomTemplate();
     });
+
+    // Add this after the template fetching code
+    fetch('/api/depth-images')
+    .then(response => response.json())
+    .then(depthImages => {
+        depthImageOptions = depthImages;
+        const depthImageGrid = document.getElementById('depthImageGrid');
+        
+        depthImages.forEach(depth => {
+            const depthItem = document.createElement('div');
+            depthItem.className = 'template-item';
+            depthItem.innerHTML = `<img src="/uploads/depth/${depth.filename}" alt="${depth.name}">`;
+            depthItem.dataset.value = depth.id;
+            depthItem.dataset.filename = depth.filename;
+            depthItem.dataset.name = depth.name;
+            depthImageGrid.appendChild(depthItem);
+
+            depthItem.addEventListener('click', function() {
+                selectDepthImage(this);
+            });
+        });
+    });
+
+    function selectDepthImage(depthItem) {
+        document.querySelectorAll('#depthImageGrid .template-item.selected').forEach(item => item.classList.remove('selected'));
+        depthItem.classList.add('selected');
+        selectedDepthId = depthItem.dataset.value;
+        
+        // Clear the file input when selecting from grid
+        document.getElementById('depthImage').value = '';
+    }
 
     function selectRandomTemplate() {
         if (templateOptions.length > 0) {
@@ -95,19 +128,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     generateBtn.addEventListener('click', function() {
-        const depthImage = depthImageInput.files[0];
-
-        if (!depthImage || !selectedTemplateId) {
-            alert('Please upload a depth image and select a template.');
+        const depthImageFile = depthImageInput.files[0];
+        
+        if ((!depthImageFile && !selectedDepthId) || !selectedTemplateId) {
+            alert('Please select both a depth image and a template.');
             return;
         }
-
+    
         const formData = new FormData();
         formData.append('separation', separation);
         formData.append('depthStrength', depthStrength);
-        formData.append('depthImage', depthImage);
+        if (depthImageFile) {
+            formData.append('depthImage', depthImageFile);
+        } else {
+            formData.append('depthImageId', selectedDepthId);
+        }
         formData.append('templateId', selectedTemplateId);
-
+    
         fetch('/generate-stereogram', {
             method: 'POST',
             body: formData
@@ -132,6 +169,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             alert('An error occurred while generating the stereogram.');
         });
+    });
+
+    // Add this to handle file input changes
+    depthImageInput.addEventListener('change', function() {
+        // Clear grid selection when uploading a file
+        document.querySelectorAll('#depthImageGrid .template-item.selected').forEach(item => item.classList.remove('selected'));
+        selectedDepthId = null;
     });
 
     // Add resize event listener to update preview when window is resized
